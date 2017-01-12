@@ -159,7 +159,7 @@ typedef struct {
 } XScreenSaverInfo;
 
 typedef XScreenSaverInfo* (*XScreenSaverAllocInfo)();
-typedef Status (*XScreenSaverQueryInfo)(Display* display, Drawable* drawable, XScreenSaverInfo* info);
+typedef Status (*XScreenSaverQueryInfo)(Display* display, Drawable drawable, XScreenSaverInfo* info);
 
 static XScreenSaverAllocInfo _xScreenSaverAllocInfo = 0;
 static XScreenSaverQueryInfo _xScreenSaverQueryInfo = 0;
