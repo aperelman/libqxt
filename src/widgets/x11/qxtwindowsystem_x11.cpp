@@ -29,9 +29,11 @@
 ** <http://libqxt.org>  <foundation@libqxt.org>
 *****************************************************************************/
 
+#include <stdlib.h>
 #include <QLibrary>
 #include <QX11Info>
 #include <X11/Xutil.h>
+#include <X11/Xlib.h>
 
 static WindowList qxt_getWindows(Atom prop)
 {
@@ -178,9 +180,18 @@ uint QxtWindowSystem::idleTime()
     if (xssResolved)
     {
         XScreenSaverInfo* info = _xScreenSaverAllocInfo();
+        
+        /* question: appRootWindow return 0 but don't know why
         const int screen = QX11Info::appScreen();
         Qt::HANDLE rootWindow = QX11Info::appRootWindow(screen);
         _xScreenSaverQueryInfo(QX11Info::display(), (Drawable*) rootWindow, info);
+        */
+        
+        char* buffer = getenv("DISPLAY");
+        Display* play = XOpenDisplay(buffer);
+        Window window = XDefaultRootWindow(play);
+        _xScreenSaverQueryInfo(play, (Drawable)window, info);
+        
         idle = info->idle;
         if (info)
             XFree(info);
