@@ -1,5 +1,3 @@
-.\" $Id: libssh2_sftp_symlink_ex.3,v 1.1 2007/06/14 16:33:38 jehousley Exp $
-.\"
 .TH libssh2_sftp_symlink_ex 3 "1 Jun 2007" "libssh2 0.15" "libssh2 manual"
 .SH NAME
 libssh2_sftp_symlink_ex - read or set a symbolic link
@@ -12,17 +10,6 @@ int
 libssh2_sftp_symlink_ex(LIBSSH2_SFTP *sftp, const char *path,
                         unsigned int path_len, char *target,
                         unsigned int target_len, int link_type);
-
-int 
-libssh2_sftp_symlink(LIBSSH2_SFTP *sftp, const char *path, char *target);
-
-int 
-libssh2_sftp_readlink(LIBSSH2_SFTP *sftp, const char *path, char *target,
-                      unsigned int target_len);
-
-int 
-libssh2_sftp_realpath(LIBSSH2_SFTP *sftp, const char *path, char *target,
-                      unsigned int target_len);
 .SH DESCRIPTION
 Create a symlink or read out symlink information from the remote side.
 
@@ -61,7 +48,7 @@ These are convenience macros:
 .BR libssh2_sftp_realpath(3)
 : Resolve a complex, relative, or symlinked filepath to its effective target.
 .SH RETURN VALUE
-When using LIBSSH2_SFTP_SYMLINK, this funtion returns 0 on success or negative
+When using LIBSSH2_SFTP_SYMLINK, this function returns 0 on success or negative
 on failure.
 
 When using LIBSSH2_SFTP_READLINK or LIBSSH2_SFTP_REALPATH, it returns the
@@ -70,6 +57,13 @@ zero) or negative on failure.
 
 It returns LIBSSH2_ERROR_EAGAIN when it would otherwise block. While
 LIBSSH2_ERROR_EAGAIN is a negative number, it isn't really a failure per se.
+
+From 1.2.8, LIBSSH2_ERROR_BUFFER_TOO_SMALL is returned if the given 'target'
+buffer is too small to fit the requested object name.
+.SH BUG
+Passing in a too small buffer when receiving data only results in libssh2
+1.2.7 or earlier to not copy the entire data amount, and it is not possible
+for the application to tell when it happens!
 .SH ERRORS
 \fILIBSSH2_ERROR_ALLOC\fP -  An internal memory allocation call failed.
 

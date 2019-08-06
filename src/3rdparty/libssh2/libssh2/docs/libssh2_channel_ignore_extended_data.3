@@ -1,5 +1,3 @@
-.\" $Id: template.3,v 1.4 2007/06/13 16:41:33 jehousley Exp $
-.\"
 .TH libssh2_channel_ignore_extended_data 3 "20 Feb 2010" "libssh2 1.2.4" "libssh2 manual"
 .SH NAME
 libssh2_channel_ignore_extended_data - convenience macro for \fIlibssh2_channel_handle_extended_data(3)\fP calls
@@ -9,6 +7,9 @@ libssh2_channel_ignore_extended_data - convenience macro for \fIlibssh2_channel_
 libssh2_channel_ignore_extended_data(arguments)
 
 .SH DESCRIPTION
+This function is deprecated. Use the
+\fIlibssh2_channel_handle_extended_data2(3)\fP function instead!
+
 This is a macro defined in a public libssh2 header file that is using the
 underlying function \fIlibssh2_channel_handle_extended_data(3)\fP.
 .SH RETURN VALUE
@@ -16,4 +17,4 @@ See \fIlibssh2_channel_handle_extended_data(3)\fP
 .SH ERRORS
 See \fIlibssh2_channel_handle_extended_data(3)\fP
 .SH SEE ALSO
-.BR \fIlibssh2_channel_handle_extended_data(3)\fP
+.BR libssh2_channel_handle_extended_data(3)

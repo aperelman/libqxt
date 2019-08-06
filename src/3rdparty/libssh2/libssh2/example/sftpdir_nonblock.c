@@ -1,6 +1,4 @@
 /*
- * $Id: sftpdir_nonblock.c,v 1.13 2009/04/28 10:35:30 bagder Exp $
- *
  * Sample doing an SFTP directory listing.
  *
  * The sample code has default values for host name, user name, password and
@@ -28,12 +26,21 @@
 #ifdef HAVE_ARPA_INET_H
 # include <arpa/inet.h>
 #endif
+#ifdef HAVE_INTTYPES_H
+# include <inttypes.h>
+#endif
 
 #include <sys/types.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
+
+#ifdef WIN32
+#define __FILESIZE "I64"
+#else
+#define __FILESIZE "llu"
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -42,25 +49,30 @@ int main(int argc, char *argv[])
     struct sockaddr_in sin;
     const char *fingerprint;
     LIBSSH2_SESSION *session;
-    const char *username="username";
-    const char *password="password";
-    const char *sftppath="/tmp/secretdir";
+    const char *username = "username";
+    const char *password = "password";
+    const char *sftppath = "/tmp/secretdir";
+    const char *pubkey = "/home/username/.ssh/id_rsa.pub";
+    const char *privkey = "/home/username/.ssh/id_rsa";
     int rc;
-#if defined(HAVE_IOCTLSOCKET)
-    long flag = 1;
-#endif
     LIBSSH2_SFTP *sftp_session;
     LIBSSH2_SFTP_HANDLE *sftp_handle;
 
 #ifdef WIN32
     WSADATA wsadata;
+    int err;
 
-    WSAStartup(MAKEWORD(2,0), &wsadata);
+    err = WSAStartup(MAKEWORD(2, 0), &wsadata);
+    if(err != 0) {
+        fprintf(stderr, "WSAStartup failed with error: %d\n", err);
+        return 1;
+    }
 #endif
 
-    if (argc > 1) {
+    if(argc > 1) {
         hostaddr = inet_addr(argv[1]);
-    } else {
+    }
+    else {
         hostaddr = htonl(0x7F000001);
     }
 
@@ -74,9 +86,9 @@ int main(int argc, char *argv[])
         sftppath = argv[4];
     }
 
-    rc = libssh2_init (0);
-    if (rc != 0) {
-        fprintf (stderr, "libssh2 initialization failed (%d)\n", rc);
+    rc = libssh2_init(0);
+    if(rc != 0) {
+        fprintf(stderr, "libssh2 initialization failed (%d)\n", rc);
         return 1;
     }
 
@@ -89,8 +101,8 @@ int main(int argc, char *argv[])
     sin.sin_family = AF_INET;
     sin.sin_port = htons(22);
     sin.sin_addr.s_addr = hostaddr;
-    if (connect(sock, (struct sockaddr*)(&sin),
-                sizeof(struct sockaddr_in)) != 0) {
+    if(connect(sock, (struct sockaddr*)(&sin),
+               sizeof(struct sockaddr_in)) != 0) {
         fprintf(stderr, "failed to connect!\n");
         return -1;
     }
@@ -107,7 +119,8 @@ int main(int argc, char *argv[])
     /* ... start it up. This will trade welcome banners, exchange keys,
      * and setup crypto, compression, and MAC layers
      */
-    while ((rc = libssh2_session_startup(session, sock)) == LIBSSH2_ERROR_EAGAIN);
+    while((rc = libssh2_session_handshake(session, sock)) ==
+          LIBSSH2_ERROR_EAGAIN);
     if(rc) {
         fprintf(stderr, "Failure establishing SSH session: %d\n", rc);
         return -1;
@@ -119,27 +132,28 @@ int main(int argc, char *argv[])
      * user, that's your call
      */
     fingerprint = libssh2_hostkey_hash(session, LIBSSH2_HOSTKEY_HASH_SHA1);
-    printf("Fingerprint: ");
+    fprintf(stderr, "Fingerprint: ");
     for(i = 0; i < 20; i++) {
-        printf("%02X ", (unsigned char)fingerprint[i]);
+        fprintf(stderr, "%02X ", (unsigned char)fingerprint[i]);
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 
-    if (auth_pw) {
+    if(auth_pw) {
         /* We could authenticate via password */
-        while ((rc = libssh2_userauth_password(session, username, password)) ==
-               LIBSSH2_ERROR_EAGAIN);
-        if (rc) {
+        while((rc = libssh2_userauth_password(session, username, password)) ==
+              LIBSSH2_ERROR_EAGAIN);
+        if(rc) {
             fprintf(stderr, "Authentication by password failed.\n");
             goto shutdown;
         }
-    } else {
+    }
+    else {
         /* Or by public key */
-        while ((rc = libssh2_userauth_publickey_fromfile(session, username,
-                                                         "/home/username/.ssh/id_rsa.pub",
-                                                         "/home/username/.ssh/id_rsa",
-                                                         password)) == LIBSSH2_ERROR_EAGAIN);
-        if (rc) {
+        while((rc = libssh2_userauth_publickey_fromfile(session, username,
+                                                        pubkey, privkey,
+                                                        password)) ==
+              LIBSSH2_ERROR_EAGAIN);
+        if(rc) {
             fprintf(stderr, "\tAuthentication by public key failed\n");
             goto shutdown;
         }
@@ -149,24 +163,24 @@ int main(int argc, char *argv[])
     do {
         sftp_session = libssh2_sftp_init(session);
 
-        if ((!sftp_session) && (libssh2_session_last_errno(session) !=
-                                LIBSSH2_ERROR_EAGAIN)) {
+        if((!sftp_session) && (libssh2_session_last_errno(session) !=
+                               LIBSSH2_ERROR_EAGAIN)) {
             fprintf(stderr, "Unable to init SFTP session\n");
             goto shutdown;
         }
-    } while (!sftp_session);
+    } while(!sftp_session);
 
     fprintf(stderr, "libssh2_sftp_opendir()!\n");
     /* Request a dir listing via SFTP */
     do {
         sftp_handle = libssh2_sftp_opendir(sftp_session, sftppath);
 
-        if ((!sftp_handle) && (libssh2_session_last_errno(session) !=
-                               LIBSSH2_ERROR_EAGAIN)) {
+        if((!sftp_handle) && (libssh2_session_last_errno(session) !=
+                              LIBSSH2_ERROR_EAGAIN)) {
             fprintf(stderr, "Unable to open dir with SFTP\n");
             goto shutdown;
         }
-    } while (!sftp_handle);
+    } while(!sftp_handle);
 
     fprintf(stderr, "libssh2_sftp_opendir() is done, now receive listing!\n");
     do {
@@ -174,8 +188,8 @@ int main(int argc, char *argv[])
         LIBSSH2_SFTP_ATTRIBUTES attrs;
 
         /* loop until we fail */
-        while ((rc = libssh2_sftp_readdir(sftp_handle, mem, sizeof(mem),
-                                          &attrs)) == LIBSSH2_ERROR_EAGAIN) {
+        while((rc = libssh2_sftp_readdir(sftp_handle, mem, sizeof(mem),
+                                         &attrs)) == LIBSSH2_ERROR_EAGAIN) {
             ;
         }
         if(rc > 0) {
@@ -186,43 +200,40 @@ int main(int argc, char *argv[])
                 /* this should check what permissions it
                    is and print the output accordingly */
                 printf("--fix----- ");
-            } else {
+            }
+            else {
                 printf("---------- ");
             }
 
             if(attrs.flags & LIBSSH2_SFTP_ATTR_UIDGID) {
-                printf("%4ld %4ld ", attrs.uid, attrs.gid);
-            } else {
+                printf("%4d %4d ", (int) attrs.uid, (int) attrs.gid);
+            }
+            else {
                 printf("   -    - ");
             }
 
             if(attrs.flags & LIBSSH2_SFTP_ATTR_SIZE) {
-                /* attrs.filesize is an uint64_t according to
-                   the docs but there is no really good and
-                   portable 64bit type for C before C99, and
-                   correspondingly there was no good printf()
-                   option for it... */
-
-                printf("%8lld ", attrs.filesize);
+                printf("%8" __FILESIZE " ", attrs.filesize);
             }
 
             printf("%s\n", mem);
         }
-        else if (rc == LIBSSH2_ERROR_EAGAIN) {
+        else if(rc == LIBSSH2_ERROR_EAGAIN) {
             /* blocking */
             fprintf(stderr, "Blocking\n");
-        } else {
+        }
+        else {
             break;
         }
 
-    } while (1);
+    } while(1);
 
     libssh2_sftp_closedir(sftp_handle);
     libssh2_sftp_shutdown(sftp_session);
 
   shutdown:
 
-    libssh2_session_disconnect(session, "Normal Shutdown, Thank you for playing");
+    libssh2_session_disconnect(session, "Normal Shutdown");
     libssh2_session_free(session);
 
 #ifdef WIN32
@@ -230,7 +241,7 @@ int main(int argc, char *argv[])
 #else
     close(sock);
 #endif
-    printf("all done\n");
+    fprintf(stderr, "all done\n");
 
     libssh2_exit();
 

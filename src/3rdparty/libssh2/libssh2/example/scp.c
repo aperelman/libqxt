@@ -1,6 +1,4 @@
 /*
- * $Id: scp.c,v 1.12 2009/04/28 10:35:30 bagder Exp $
- *
  * Sample showing how to do a simple SCP transfer.
  */
 
@@ -40,37 +38,43 @@ int main(int argc, char *argv[])
     const char *fingerprint;
     LIBSSH2_SESSION *session;
     LIBSSH2_CHANNEL *channel;
-    const char *username="username";
-    const char *password="password";
-    const char *scppath="/tmp/TEST";
-    struct stat fileinfo;
+    const char *username = "username";
+    const char *password = "password";
+    const char *scppath = "/tmp/TEST";
+    libssh2_struct_stat fileinfo;
     int rc;
-    off_t got=0;
+    libssh2_struct_stat_size got = 0;
 
 #ifdef WIN32
     WSADATA wsadata;
+    int err;
 
-    WSAStartup(MAKEWORD(2,0), &wsadata);
+    err = WSAStartup(MAKEWORD(2, 0), &wsadata);
+    if(err != 0) {
+        fprintf(stderr, "WSAStartup failed with error: %d\n", err);
+        return 1;
+    }
 #endif
 
-    if (argc > 1) {
+    if(argc > 1) {
         hostaddr = inet_addr(argv[1]);
-    } else {
+    }
+    else {
         hostaddr = htonl(0x7F000001);
     }
-    if (argc > 2) {
+    if(argc > 2) {
         username = argv[2];
     }
-    if (argc > 3) {
+    if(argc > 3) {
         password = argv[3];
     }
-    if (argc > 4) {
+    if(argc > 4) {
         scppath = argv[4];
     }
 
-    rc = libssh2_init (0);
-    if (rc != 0) {
-        fprintf (stderr, "libssh2 initialization failed (%d)\n", rc);
+    rc = libssh2_init(0);
+    if(rc) {
+        fprintf(stderr, "libssh2 initialization failed (%d)\n", rc);
         return 1;
     }
 
@@ -83,8 +87,8 @@ int main(int argc, char *argv[])
     sin.sin_family = AF_INET;
     sin.sin_port = htons(22);
     sin.sin_addr.s_addr = hostaddr;
-    if (connect(sock, (struct sockaddr*)(&sin),
-            sizeof(struct sockaddr_in)) != 0) {
+    if(connect(sock, (struct sockaddr*)(&sin),
+               sizeof(struct sockaddr_in)) != 0) {
         fprintf(stderr, "failed to connect!\n");
         return -1;
     }
@@ -98,7 +102,7 @@ int main(int argc, char *argv[])
     /* ... start it up. This will trade welcome banners, exchange keys,
      * and setup crypto, compression, and MAC layers
      */
-    rc = libssh2_session_startup(session, sock);
+    rc = libssh2_session_handshake(session, sock);
     if(rc) {
         fprintf(stderr, "Failure establishing SSH session: %d\n", rc);
         return -1;
@@ -116,45 +120,48 @@ int main(int argc, char *argv[])
     }
     fprintf(stderr, "\n");
 
-    if (auth_pw) {
+    if(auth_pw) {
         /* We could authenticate via password */
-        if (libssh2_userauth_password(session, username, password)) {
+        if(libssh2_userauth_password(session, username, password)) {
             fprintf(stderr, "Authentication by password failed.\n");
             goto shutdown;
         }
-    } else {
+    }
+    else {
         /* Or by public key */
-        if (libssh2_userauth_publickey_fromfile(session, username,
-                            "/home/username/.ssh/id_rsa.pub",
-                            "/home/username/.ssh/id_rsa",
-                            password)) {
+#define HOME_DIR "/home/username/"
+        if(libssh2_userauth_publickey_fromfile(session, username,
+                                               HOME_DIR ".ssh/id_rsa.pub",
+                                               HOME_DIR ".ssh/id_rsa",
+                                               password)) {
             fprintf(stderr, "\tAuthentication by public key failed\n");
             goto shutdown;
         }
     }
 
     /* Request a file via SCP */
-    channel = libssh2_scp_recv(session, scppath, &fileinfo);
+    channel = libssh2_scp_recv2(session, scppath, &fileinfo);
 
-    if (!channel) {
-        fprintf(stderr, "Unable to open a session\n");
+    if(!channel) {
+        fprintf(stderr, "Unable to open a session: %d\n",
+                libssh2_session_last_errno(session));
         goto shutdown;
     }
 
 
     while(got < fileinfo.st_size) {
         char mem[1024];
-        int amount=sizeof(mem);
+        int amount = sizeof(mem);
 
         if((fileinfo.st_size -got) < amount) {
-            amount = fileinfo.st_size -got;
+            amount = (int)(fileinfo.st_size -got);
         }
 
         rc = libssh2_channel_read(channel, mem, amount);
-        if(rc == amount) {
+        if(rc > 0) {
             write(1, mem, rc);
         }
-        else {
+        else if(rc < 0) {
             fprintf(stderr, "libssh2_channel_read() failed: %d\n", rc);
             break;
         }
@@ -166,7 +173,8 @@ int main(int argc, char *argv[])
 
  shutdown:
 
-    libssh2_session_disconnect(session, "Normal Shutdown, Thank you for playing");
+    libssh2_session_disconnect(session,
+                               "Normal Shutdown, Thank you for playing");
     libssh2_session_free(session);
 
 #ifdef WIN32

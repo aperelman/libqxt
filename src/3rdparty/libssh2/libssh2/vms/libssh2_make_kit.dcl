@@ -104,7 +104,7 @@ $ seconddash    = f$locate("-", restdir)
 $ if seconddash .ge. f$length( restdir )
 $ then
 $   daily    = "FALSE"
-$   datename = ""   
+$   datename = "Final"
 $ else
 $   datename = "D" + f$extract(seconddash+1,8,restdir)   
 $ endif
@@ -113,7 +113,7 @@ $ if daily
 $ then
 $   productname = "JCB ''arch' LIBSSH2 V''vms_majorv'.''minorv'-''patchv'''datename'"
 $ else
-$   productname = "JCB ''arch' LIBSSH2 V''vms_majorv'.''minorv'-''patchv'"
+$   productname = "JCB ''arch' LIBSSH2 V''vms_majorv'.''minorv'-''patchv'''datename'"
 $ endif
 $!
 $ productfilename  = "JCB-''arch'-LIBSSH2-" + f$fao("V!2ZL!2ZL-!2ZL!AS-1", f$integer(vms_majorv),minorv,patchv,datename)
@@ -194,7 +194,7 @@ $ write pt "=prompt JCB LIBSSH2 for OpenVMS"
 $ write pt ""
 $ write pt "libssh2 is an open source client side library that aims to implement"
 $ write pt "the SSH protocol. This is the OpenVMS port of that library."
-$ write pt "Further information at http://www.libssh2.org."
+$ write pt "Further information at https://www.libssh2.org."
 $ write pt ""
 $ write pt "1 NEED_VMS83"
 $ write pt "=prompt OpenVMS 8.3 or later is not installed on your system."

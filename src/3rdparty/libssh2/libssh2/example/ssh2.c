@@ -1,6 +1,4 @@
 /*
- * $Id: ssh2.c,v 1.19 2009/04/28 10:35:30 bagder Exp $
- *
  * Sample showing how to do SSH2 connect.
  *
  * The sample code has default values for host name, user name, password
@@ -39,10 +37,10 @@
 #include <ctype.h>
 
 
-const char *keyfile1="~/.ssh/id_rsa.pub";
-const char *keyfile2="~/.ssh/id_rsa";
-const char *username="username";
-const char *password="password";
+const char *keyfile1 = "~/.ssh/id_rsa.pub";
+const char *keyfile2 = "~/.ssh/id_rsa";
+const char *username = "username";
+const char *password = "password";
 
 
 static void kbd_callback(const char *name, int name_len,
@@ -56,7 +54,7 @@ static void kbd_callback(const char *name, int name_len,
     (void)name_len;
     (void)instruction;
     (void)instruction_len;
-    if (num_prompts == 1) {
+    if(num_prompts == 1) {
         responses[0].text = strdup(password);
         responses[0].length = strlen(password);
     }
@@ -74,15 +72,22 @@ int main(int argc, char *argv[])
     char *userauthlist;
     LIBSSH2_SESSION *session;
     LIBSSH2_CHANNEL *channel;
+
 #ifdef WIN32
     WSADATA wsadata;
+    int err;
 
-    WSAStartup(MAKEWORD(2,0), &wsadata);
+    err = WSAStartup(MAKEWORD(2, 0), &wsadata);
+    if(err != 0) {
+        fprintf(stderr, "WSAStartup failed with error: %d\n", err);
+        return 1;
+    }
 #endif
 
-    if (argc > 1) {
+    if(argc > 1) {
         hostaddr = inet_addr(argv[1]);
-    } else {
+    }
+    else {
         hostaddr = htonl(0x7F000001);
     }
 
@@ -93,9 +98,9 @@ int main(int argc, char *argv[])
         password = argv[3];
     }
 
-    rc = libssh2_init (0);
-    if (rc != 0) {
-        fprintf (stderr, "libssh2 initialization failed (%d)\n", rc);
+    rc = libssh2_init(0);
+    if(rc != 0) {
+        fprintf(stderr, "libssh2 initialization failed (%d)\n", rc);
         return 1;
     }
 
@@ -107,7 +112,7 @@ int main(int argc, char *argv[])
     sin.sin_family = AF_INET;
     sin.sin_port = htons(22);
     sin.sin_addr.s_addr = hostaddr;
-    if (connect(sock, (struct sockaddr*)(&sin),
+    if(connect(sock, (struct sockaddr*)(&sin),
                 sizeof(struct sockaddr_in)) != 0) {
         fprintf(stderr, "failed to connect!\n");
         return -1;
@@ -117,7 +122,7 @@ int main(int argc, char *argv[])
      * banners, exchange keys, and setup crypto, compression, and MAC layers
      */
     session = libssh2_session_init();
-    if (libssh2_session_startup(session, sock)) {
+    if(libssh2_session_handshake(session, sock)) {
         fprintf(stderr, "Failure establishing SSH session\n");
         return -1;
     }
@@ -128,71 +133,80 @@ int main(int argc, char *argv[])
      * call
      */
     fingerprint = libssh2_hostkey_hash(session, LIBSSH2_HOSTKEY_HASH_SHA1);
-    printf("Fingerprint: ");
+    fprintf(stderr, "Fingerprint: ");
     for(i = 0; i < 20; i++) {
-        printf("%02X ", (unsigned char)fingerprint[i]);
+        fprintf(stderr, "%02X ", (unsigned char)fingerprint[i]);
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 
     /* check what authentication methods are available */
     userauthlist = libssh2_userauth_list(session, username, strlen(username));
-    printf("Authentication methods: %s\n", userauthlist);
-    if (strstr(userauthlist, "password") != NULL) {
+    fprintf(stderr, "Authentication methods: %s\n", userauthlist);
+    if(strstr(userauthlist, "password") != NULL) {
         auth_pw |= 1;
     }
-    if (strstr(userauthlist, "keyboard-interactive") != NULL) {
+    if(strstr(userauthlist, "keyboard-interactive") != NULL) {
         auth_pw |= 2;
     }
-    if (strstr(userauthlist, "publickey") != NULL) {
+    if(strstr(userauthlist, "publickey") != NULL) {
         auth_pw |= 4;
     }
 
     /* if we got an 4. argument we set this option if supported */
     if(argc > 4) {
-        if ((auth_pw & 1) && !strcasecmp(argv[4], "-p")) {
+        if((auth_pw & 1) && !strcasecmp(argv[4], "-p")) {
             auth_pw = 1;
         }
-        if ((auth_pw & 2) && !strcasecmp(argv[4], "-i")) {
+        if((auth_pw & 2) && !strcasecmp(argv[4], "-i")) {
             auth_pw = 2;
         }
-        if ((auth_pw & 4) && !strcasecmp(argv[4], "-k")) {
+        if((auth_pw & 4) && !strcasecmp(argv[4], "-k")) {
             auth_pw = 4;
         }
     }
 
-    if (auth_pw & 1) {
+    if(auth_pw & 1) {
         /* We could authenticate via password */
-        if (libssh2_userauth_password(session, username, password)) {
-            printf("\tAuthentication by password failed!\n");
+        if(libssh2_userauth_password(session, username, password)) {
+            fprintf(stderr, "\tAuthentication by password failed!\n");
             goto shutdown;
-        } else {
-            printf("\tAuthentication by password succeeded.\n");
         }
-    } else if (auth_pw & 2) {
+        else {
+            fprintf(stderr, "\tAuthentication by password succeeded.\n");
+        }
+    }
+    else if(auth_pw & 2) {
         /* Or via keyboard-interactive */
-        if (libssh2_userauth_keyboard_interactive(session, username,
-                                                  &kbd_callback) ) {
-            printf("\tAuthentication by keyboard-interactive failed!\n");
+        if(libssh2_userauth_keyboard_interactive(session, username,
+                                                 &kbd_callback) ) {
+            fprintf(stderr,
+                    "\tAuthentication by keyboard-interactive failed!\n");
             goto shutdown;
-        } else {
-            printf("\tAuthentication by keyboard-interactive succeeded.\n");
         }
-    } else if (auth_pw & 4) {
+        else {
+            fprintf(stderr,
+                    "\tAuthentication by keyboard-interactive succeeded.\n");
+        }
+    }
+    else if(auth_pw & 4) {
         /* Or by public key */
-        if (libssh2_userauth_publickey_fromfile(session, username, keyfile1,
-                                                keyfile2, password)) {
-            printf("\tAuthentication by public key failed!\n");
+        if(libssh2_userauth_publickey_fromfile(session, username, keyfile1,
+                                               keyfile2, password)) {
+            fprintf(stderr, "\tAuthentication by public key failed!\n");
             goto shutdown;
-        } else {
-            printf("\tAuthentication by public key succeeded.\n");
         }
-    } else {
-        printf("No supported authentication methods found!\n");
+        else {
+            fprintf(stderr, "\tAuthentication by public key succeeded.\n");
+        }
+    }
+    else {
+        fprintf(stderr, "No supported authentication methods found!\n");
         goto shutdown;
     }
 
     /* Request a shell */
-    if (!(channel = libssh2_channel_open_session(session))) {
+    channel = libssh2_channel_open_session(session);
+    if(!channel) {
         fprintf(stderr, "Unable to open a session\n");
         goto shutdown;
     }
@@ -205,13 +219,13 @@ int main(int argc, char *argv[])
     /* Request a terminal with 'vanilla' terminal emulation
      * See /etc/termcap for more options
      */
-    if (libssh2_channel_request_pty(channel, "vanilla")) {
+    if(libssh2_channel_request_pty(channel, "vanilla")) {
         fprintf(stderr, "Failed requesting pty\n");
         goto skip_shell;
     }
 
     /* Open a SHELL on that pty */
-    if (libssh2_channel_shell(channel)) {
+    if(libssh2_channel_shell(channel)) {
         fprintf(stderr, "Unable to request shell on allocated pty\n");
         goto shutdown;
     }
@@ -230,14 +244,14 @@ int main(int argc, char *argv[])
      */
 
   skip_shell:
-    if (channel) {
+    if(channel) {
         libssh2_channel_free(channel);
         channel = NULL;
     }
 
     /* Other channel types are supported via:
      * libssh2_scp_send()
-     * libssh2_scp_recv()
+     * libssh2_scp_recv2()
      * libssh2_channel_direct_tcpip()
      */
 
@@ -252,7 +266,7 @@ int main(int argc, char *argv[])
 #else
     close(sock);
 #endif
-    printf("all done!\n");
+    fprintf(stderr, "all done!\n");
 
     libssh2_exit();
 

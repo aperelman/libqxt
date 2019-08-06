@@ -1,5 +1,3 @@
-.\" $Id: libssh2_sftp_fstat_ex.3,v 1.2 2009/03/16 23:25:14 bagder Exp $
-.\"
 .TH libssh2_sftp_fstat_ex 3 "1 Jun 2007" "libssh2 0.15" "libssh2 manual"
 .SH NAME
 libssh2_sftp_fstat_ex - get or set attributes on an SFTP file handle
@@ -12,7 +10,7 @@ int
 libssh2_sftp_fstat_ex(LIBSSH2_SFTP_HANDLE *handle,
                       LIBSSH2_SFTP_ATTRIBUTES *attrs, int setstat)
 
-#define libbssh2_sftp_fstat(handle, attrs) \\
+#define libssh2_sftp_fstat(handle, attrs) \\
     libssh2_sftp_fstat_ex((handle), (attrs), 0)
 #define libssh2_sftp_fsetstat(handle, attrs) \\
     libssh2_sftp_fstat_ex((handle), (attrs), 1)
@@ -62,7 +60,7 @@ most common ones are:
 
 To check for specific user permissions, the set of defines are in the
 pattern LIBSSH2_SFTP_S_I<action><who> where <action> is R, W or X for
-read, write and excutable and <who> is USR, GRP and OTH for user,
+read, write and executable and <who> is USR, GRP and OTH for user,
 group and other. So, you check for a user readable file, use the bit
 \fILIBSSH2_SFTP_S_IRUSR\fP while you want to see if it is executable
 for other, you use \fILIBSSH2_SFTP_S_IXOTH\fP and so on.

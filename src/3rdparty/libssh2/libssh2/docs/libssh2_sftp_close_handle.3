@@ -1,5 +1,3 @@
-.\" $Id: libssh2_sftp_close_handle.3,v 1.3 2009/03/17 10:34:27 bagder Exp $
-.\"
 .TH libssh2_sftp_close_handle 3 "1 Jun 2007" "libssh2 0.15" "libssh2 manual"
 .SH NAME
 libssh2_sftp_close_handle - close filehandle
@@ -22,7 +20,7 @@ or \fBlibssh2_sftp_opendir(3)\fP (which is a macro).
 
 Close an active LIBSSH2_SFTP_HANDLE. Because files and directories share the
 same underlying storage mechanism these methods may be used
-interchangably. \fBlibssh2_sftp_close(3)\fP and \fBlibssh2_sftp_closedir(3)\fP
+interchangeably. \fBlibssh2_sftp_close(3)\fP and \fBlibssh2_sftp_closedir(3)\fP
 are macros for \fBlibssh2_sftp_close_handle(3)\fP.
 
 .SH RETURN VALUE
